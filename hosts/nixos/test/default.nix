@@ -1,7 +1,7 @@
 #############################################################
 #
-#  Genoa - Laptop
-#  NixOS running on Lenovo Thinkpad E15
+#  mini - Laptop
+#  NixOS running on Samsung series 5 Ultra
 #
 ###############################################################
 
@@ -27,7 +27,7 @@
     (lib.custom.relativeToRoot "hosts/common/disks/btrfs-luks-impermanence-disk.nix")
     {
       _module.args = {
-        disk = "/dev/nvme0n1";
+        disk = "/dev/sdb";
         withSwap = true;
         swapSize = 16;
       };
@@ -58,7 +58,7 @@
       "hosts/common/optional/thunar.nix" # file manager
       "hosts/common/optional/vlc.nix" # media player
       "hosts/common/optional/wayland.nix" # wayland components and pkgs not available in home-manager
-      "hosts/common/optional/yubikey.nix" # yubikey related packages and configs
+#      "hosts/common/optional/yubikey.nix" # yubikey related packages and configs
     ])
   ];
 
@@ -68,7 +68,7 @@
 
   hostSpec = {
     hostName = "genoa";
-    useYubikey = lib.mkForce true;
+#    useYubikey = lib.mkForce true;
     hdr = lib.mkForce true;
     wifi = lib.mkForce true;
     persistFolder = "/persist"; # added for "completion" because of the disko spec that was used even though impermanence isn't actually enabled here yet.
@@ -83,22 +83,25 @@
   networking = {
     networkmanager.enable = true;
     enableIPv6 = false;
+    hostName = "nixos"; # Define your hostname.
+    wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+
+    hosts = {
+      "192.168.0.22" = [
+        "storagedocker"
+      ];
+    };
   };
 
-  #Firmwareupdate
+  fileSystems."/home/greg/nfs" = {
+        device = "storagedocker:/home/greg/docker";
+        fsType = "nfs";
+        options = [ "x-systemd.automount" "noauto" ];
+        };
+    #Firmwareupdate
   #  $ fwupdmgr update
   services.fwupd.enable = true;
 
-  #  services.backup = {
-  #    enable = true;
-  #    borgBackupStartTime = "02:00:00";
-  #    borgServer = "${config.hostSpec.networking.subnets.grove.hosts.oops.ip}";
-  #    borgUser = "${config.hostSpec.username}";
-  #    borgPort = "${builtins.toString config.hostSpec.networking.ports.tcp.oops}";
-  #    borgBackupPath = "/var/services/homes/${config.hostSpec.username}/backups";
-  #    borgNotifyFrom = "${config.hostSpec.email.notifier}";
-  #    borgNotifyTo = "${config.hostSpec.email.backup}";
-  #  };
 
   boot.loader = {
     systemd-boot = {
@@ -155,9 +158,34 @@
     # program specific exclusions
     #targets.foo.enable = false;
   };
-  #hyprland border override example
+
+  # Set your time zone.
+  time.timeZone = "Europe/Paris";
+
+  # Enable the X11 windowing system.
+  services.xserver.enable = true;
+
+  # Enable the Cinnamon Desktop Environment.
+  services.xserver.displayManager.lightdm.enable = true;
+  services.xserver.desktopManager.cinnamon.enable = true;
+
+  # Configure keymap in X11
+  services.xserver.xkb = {
+    layout = "fr";
+    variant = "latin9_nodeadkeys";
+  };
+
+  # Configure console keymap
+  console.keyMap = "fr";
+
+  # Enable automatic login for the user.
+  services.displayManager.autoLogin.enable = true;
+  services.displayManager.autoLogin.user = "greg";
+
+#hyprland border override example
   #  wayland.windowManager.hyprland.settings.general."col.active_border" = lib.mkForce "rgb(${config.stylix.base16Scheme.base0E});
 
   # https://wiki.nixos.org/wiki/FAQ/When_do_I_update_stateVersion
-  system.stateVersion = "24.05";
+
+  system.stateVersion = "24.11";
 }
